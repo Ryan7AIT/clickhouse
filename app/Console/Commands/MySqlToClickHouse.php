@@ -142,7 +142,27 @@ class MySqlToClickHouse extends Command
 
 
 // views
-// SELECT client_id, client, SUM(prix_uniaire_ht) AS total
-// FROM etl s
-// WHERE s.mouvement_type_id = 2
-// GROUP BY ALL
+SELECT client_id, client, SUM(prix_uniaire_ht) AS total
+FROM etl s
+WHERE s.mouvement_type_id = 2
+GROUP BY ALL
+
+SELECT client_id, client, SUM(total) AS total
+FROM stats_by_client s
+GROUP BY ALL
+
+
+cretae table stats_by_client
+(
+    client_id UInt64,
+    client String,
+    total Float64
+)
+ENGINE = SummingMergeTree
+ORDER BY client_id
+
+CREATE MATERIALIZED VIEW stats_by_client_mv TO stats_by_client AS
+SELECT client_id, client, SUM(prix_uniaire_ht) AS total
+FROM etl s
+WHERE s.mouvement_type_id = 2
+GROUP BY client_id, client
