@@ -35,52 +35,50 @@ class MySqlToClickHouse extends Command
         DB::connection('clickhouse')->statement('USE bivente');
 
         // Create table in ClickHouse (if not exists)
-        DB::connection('clickhouse')->statement("
-            CREATE TABLE IF NOT EXISTS etl (
-                mouvement_ligne_id UInt64,
-                mouvement_id Nullable(UInt64),
-                mouvement_numero_complet Nullable(String),
-                date_depart Date,
-                date_commande Date,
-                mouvement_type_id Nullable(UInt64),
-                vendeur_id Nullable(UInt64),
-                vendeur Nullable(String),
-                vehicule_id Nullable(UInt64),
-                vehicule Nullable(String),
-                client_id Nullable(UInt64),
-                client Nullable(String),
-                client_reference Nullable(String),
-                client_type_id Nullable(UInt64),
-                client_type Nullable(String),
-                client_wilaya_id Nullable(UInt64),
-                client_wilaya Nullable(String),
-                region_id Nullable(UInt64),
-                region Nullable(String),
-                zone_id Nullable(UInt64),
-                zone Nullable(String),
-                secteur_id Nullable(UInt64),
-                secteur Nullable(String),
-                route_id Nullable(UInt64),
-                route Nullable(String),
-                tournee_id Nullable(UInt64),
-                tournee Nullable(String),
-                article_id Nullable(UInt64),
-                article_designation Nullable(String),
-                article_reference Nullable(String),
-                article_unite Nullable(String),
-                article_famille_id Nullable(UInt64),
-                article_famille_designation Nullable(String),
-                article_quantite Nullable(Float64),
-                prix_uniaire_ht Nullable(Float64),
-                fournisseur_id Nullable(UInt64),
-                fournisseur Nullable(String),
-                entreprise_id Nullable(UInt64),
-                domain_user Nullable(String),
-                domain_designation Nullable(String),
-                created_at DateTime
-
-            ) ENGINE = MergeTree()
-            ORDER BY mouvement_ligne_id
+        DB::connection('clickhouse')->statement("CREATE TABLE IF NOT EXISTS etl (
+                                                    mouvement_ligne_id UInt64,
+                                                    mouvement_id UInt64,
+                                                    mouvement_numero_complet String DEFAULT '',
+                                                    date_depart Date,
+                                                    date_commande Date,
+                                                    mouvement_type_id UInt64 DEFAULT 0,
+                                                    vendeur_id UInt64 DEFAULT 0,
+                                                    vendeur String DEFAULT '',
+                                                    vehicule_id UInt64 DEFAULT 0,
+                                                    vehicule String DEFAULT '',
+                                                    client_id UInt64 DEFAULT 0,
+                                                    client String DEFAULT '',
+                                                    client_reference String DEFAULT '',
+                                                    client_type_id UInt64 DEFAULT 0,
+                                                    client_type String DEFAULT '',
+                                                    client_wilaya_id UInt64 DEFAULT 0,
+                                                    client_wilaya String DEFAULT '',
+                                                    region_id UInt64 DEFAULT 0,
+                                                    region String DEFAULT '',
+                                                    zone_id UInt64 DEFAULT 0,
+                                                    zone String DEFAULT '',
+                                                    secteur_id UInt64 DEFAULT 0,
+                                                    secteur String DEFAULT '',
+                                                    route_id UInt64 DEFAULT 0,
+                                                    route String DEFAULT '',
+                                                    tournee_id UInt64 DEFAULT 0,
+                                                    tournee String DEFAULT '',
+                                                    article_id UInt64 DEFAULT 0,
+                                                    article_designation String DEFAULT '',
+                                                    article_reference String DEFAULT '',
+                                                    article_unite String DEFAULT '',
+                                                    article_famille_id UInt64 DEFAULT 0,
+                                                    article_famille_designation String DEFAULT '',
+                                                    article_quantite Float64 DEFAULT 0.0,
+                                                    prix_uniaire_ht Float64 DEFAULT 0.0,
+                                                    fournisseur_id UInt64 DEFAULT 0,
+                                                    fournisseur String DEFAULT '',
+                                                    entreprise_id UInt64 DEFAULT 0,
+                                                    domain_user String DEFAULT '',
+                                                    domain_designation String DEFAULT '',
+                                                    created_at DateTime
+                                                ) ENGINE = MergeTree()
+                                                ORDER BY (client_id, date_depart, vendeur_id);
         ");
 
         // Load data into ClickHouse
@@ -141,3 +139,10 @@ class MySqlToClickHouse extends Command
         $this->info('ETL process completed successfully.');
     }
 }
+
+
+// views
+// SELECT client_id, client, SUM(prix_uniaire_ht) AS total
+// FROM etl s
+// WHERE s.mouvement_type_id = 2
+// GROUP BY ALL
