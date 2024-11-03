@@ -137,32 +137,177 @@ class MySqlToClickHouse extends Command
         });
 
         $this->info('ETL process completed successfully.');
+
+
+        // cretae a materilize view for stats by clients
+
+        DB::connection('clickhouse')->statement('
+            CREATE MATERIALIZED VIEW IF NOT EXISTS stats_by_clients
+            ENGINE = AggregatingMergeTree()
+            ORDER BY client_id
+            POPULATE
+            AS
+            SELECT
+                client_id,
+                client,
+                client_reference,
+                client_type,
+                client_wilaya,
+                region,
+                zone,
+                secteur,
+                route,
+                tournee,
+                article_designation,
+                article_reference,
+                article_unite,
+                article_famille_designation,
+                SUM(article_quantite) AS total_quantite,
+                SUM(prix_uniaire_ht) AS total_prix_ht,
+                MIN(date_depart) AS date_depart
+            FROM etl
+            GROUP BY
+                client_id,
+                client,
+                client_reference,
+                client_type,
+                client_wilaya,
+                region,
+                zone,
+                secteur,
+                route,
+                tournee,
+                article_designation,
+                article_reference,
+                article_unite,
+                article_famille_designation
+        ');
+
+
+
+
+
+// compoare the query with and without the view
+
+"
+
+// create a view for stats by clients
+
+CREATE TABLE IF NOT EXISTS stats_by_clients (
+                client_id UInt64,
+                client Nullable(String),
+                client_reference Nullable(String),
+                client_type Nullable(String),
+                total_quantite Float64,
+                total_prix_ht Float64,
+            ) ENGINE = SummingMergeTree()
+             ORDER BY client_id
+
+
+CREATE MATERIALIZED VIEW stats_by_clients_mv TO stats_by_clients AS
+            SELECT
+                client_id,
+                client,
+                client_reference,
+                client_type,
+                SUM(article_quantite) AS total_quantite,
+                SUM(prix_uniaire_ht) AS total_prix_ht
+
+            FROM etl
+
+            GROUP BY
+                client_id
+
+
+INSERT INTO stats_by_clients
+            SELECT
+                client_id,
+                client,
+                client_reference,
+                client_type,
+                SUM(article_quantite) AS total_quantite,
+                SUM(prix_uniaire_ht) AS total_prix_ht
+
+            FROM etl
+
+            GROUP BY
+                client_id,
+                client,
+                client_reference,
+                client_type
+
+            "
+
+
+
+
+
+
+
+
     }
+
+
+
+
 }
 
 
-// views
-SELECT client_id, client, SUM(prix_uniaire_ht) AS total
-FROM etl s
-WHERE s.mouvement_type_id = 2
-GROUP BY ALL
-
-SELECT client_id, client, SUM(total) AS total
-FROM stats_by_client s
-GROUP BY ALL
 
 
-cretae table stats_by_client
-(
-    client_id UInt64,
-    client String,
-    total Float64
-)
-ENGINE = SummingMergeTree
-ORDER BY client_id
 
-CREATE MATERIALIZED VIEW stats_by_client_mv TO stats_by_client AS
-SELECT client_id, client, SUM(prix_uniaire_ht) AS total
-FROM etl s
-WHERE s.mouvement_type_id = 2
-GROUP BY client_id, client
+
+
+"
+CREATE TABLE IF NOT EXISTS netl (
+                mouvement_ligne_id UInt64,
+                mouvement_id Nullable(UInt64),
+                mouvement_numero_complet Nullable(String),
+                date_depart Date,
+                date_commande Date,
+                mouvement_type_id Nullable(UInt64),
+                vendeur_id UInt64,
+                vendeur Nullable(String),
+                vehicule_id Nullable(UInt64),
+                vehicule Nullable(String),
+                client_id UInt64,
+                client Nullable(String),
+                client_reference Nullable(String),
+                client_type_id Nullable(UInt64),
+                client_type Nullable(String),
+                client_wilaya_id Nullable(UInt64),
+                client_wilaya Nullable(String),
+                region_id Nullable(UInt64),
+                region Nullable(String),
+                zone_id Nullable(UInt64),
+                zone Nullable(String),
+                secteur_id Nullable(UInt64),
+                secteur Nullable(String),
+                route_id Nullable(UInt64),
+                route Nullable(String),
+                tournee_id Nullable(UInt64),
+                tournee Nullable(String),
+                article_id Nullable(UInt64),
+                article_designation Nullable(String),
+                article_reference Nullable(String),
+                article_unite Nullable(String),
+                article_famille_id Nullable(UInt64),
+                article_famille_designation Nullable(String),
+                article_quantite Nullable(Float64),
+                prix_uniaire_ht Nullable(Float64),
+                fournisseur_id UInt64,
+                fournisseur Nullable(String),
+                entreprise_id Nullable(UInt64),
+                domain_user Nullable(String),
+                domain_designation Nullable(String),
+                created_at DateTime
+
+            ) ENGINE = MergeTree()
+            ORDER BY (client_id, fournisseur_id, vendeur_id, date_depart)
+
+            "
+
+
+
+
+"
